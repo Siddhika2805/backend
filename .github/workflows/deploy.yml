@@ -1,0 +1,99 @@
+name: InterviewHub CI/CD & GitHub Release
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-deploy:
+    name: Build, Test and Deploy Release
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: interviewhub_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for MySQL Service to be Ready
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -u root -proot --silent; do
+            echo "Waiting for MySQL container to become healthy..."
+            sleep 2
+          done
+
+      - name: Apply Database Schema & Seed Data
+        run: |
+          mysql -h 127.0.0.1 -u root -proot interviewhub_db < database/schema.sql
+          mysql -h 127.0.0.1 -u root -proot interviewhub_db < database/sample_data.sql
+
+      - name: Generate CI Database Properties
+        run: |
+          cat <<EOF > src/main/resources/database.properties
+          db.url=jdbc:mysql://127.0.0.1:3306/interviewhub_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          db.user=root
+          db.password=root
+          EOF
+
+      - name: Compile and Run Automated Tests (JUnit 5)
+        run: mvn clean test
+
+      - name: Package Executable JAR
+        run: mvn package -DskipTests
+
+      - name: Upload Build Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: interviewhub-v1.0.0-jar
+          path: target/interviewhub-1.0.0.jar
+          retention-days: 30
+
+      - name: Publish or Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v1.0.0"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Updating existing release $TAG_NAME..."
+            gh release upload "$TAG_NAME" target/interviewhub-1.0.0.jar --clobber
+          else
+            echo "Creating new release $TAG_NAME..."
+            gh release create "$TAG_NAME" target/interviewhub-1.0.0.jar \
+              --title "InterviewHub v1.0.0 – Production Release" \
+              --notes "### InterviewHub – Multi-Interviewer Interview Management & Performance Tracking System
+
+          #### What's Included in this Deployment:
+          - **Executable JAR**: \`interviewhub-1.0.0.jar\` compiled with Java 17 release.
+          - **Full Relational Schema**: 11 normalized MySQL tables (schema.sql & sample_data.sql).
+          - **5 Academic Milestones Verified**:
+            1. OOP, Inheritance (User-Student-Candidate), Eligible & Evaluatable Interfaces.
+            2. Java Collections (ArrayList, HashMap fast lookup, HashSet uniqueness, Comparator sorting).
+            3. Multithreading & Synchronization (Atomic SlotManager check-and-decrement).
+            4. Producer-Consumer TaskQueue (wait/notifyAll) and ExecutorService Fixed Thread Pool.
+            5. JDBC & MySQL Relational Database with ACID transaction rollback.
+          
+          #### How to Run:
+          \`\`\`bash
+          java -jar interviewhub-1.0.0.jar
+          \`\`\`"
+          fi
