@@ -1,0 +1,30 @@
+# Maven build output
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE specific files
+.idea/
+*.iml
+.vscode/
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# Local sensitive configuration (Do NOT commit database passwords)
+src/main/resources/database.properties
+*.log
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
