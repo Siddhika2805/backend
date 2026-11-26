@@ -145,21 +145,45 @@ InterviewHub/
    db.password=YOUR_MYSQL_PASSWORD_HERE
    ```
 
-### 2. Compile, Test & Run via Maven
-Open a terminal in the project directory:
+### 2. How to Run the Application in Terminal
 
+You can run the application in any terminal (PowerShell, Command Prompt, or VS Code Terminal) using any of the following methods:
+
+#### ⭐ Method A: One-Command Runner (Easiest)
+In **PowerShell** or **VS Code Terminal**:
 ```powershell
-# 1. Clean and Compile
-.\mvnw.cmd clean compile
+.\run.bat
+# or
+.\run.ps1
+```
+In **Command Prompt (CMD)**:
+```cmd
+run.bat
+```
 
-# 2. Run Automated JUnit Test Suite (13/13 tests)
-.\mvnw.cmd test
+#### ⭐ Method B: Pure Java (No Maven Required)
+```powershell
+java -jar InterviewHub.jar
+```
 
-# 3. Package Executable JAR
-.\mvnw.cmd clean package
-
-# 4. Run Application Directly
+#### ⭐ Method C: Using Maven
+```powershell
+# In PowerShell:
+.\mvnw.ps1 exec:java
+# or
 .\mvnw.cmd exec:java
+
+# In Command Prompt:
+mvnw.cmd exec:java
+# or
+mvn exec:java
+```
+
+### 3. Run Automated JUnit Test Suite (13/13 tests)
+```powershell
+.\mvnw.ps1 test
+# or
+.\mvnw.cmd test
 ```
 
 ---
